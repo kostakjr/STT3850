@@ -1,0 +1,377 @@
+---
+title: "Chapter Three Homework"
+author: "Josh Kostak"
+date: '`r format(Sys.time(), "%b %d, %Y")`'
+output: bookdown::html_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA, fig.align = "center", warning = FALSE, message = FALSE)
+library(tidyverse)
+library(resampledata)
+```
+
+1. In the Flight Delays Case Study in Section 1.1,
+
+    a. The data contain flight delays for two airlines, American Airlines and United Airlines.  Conduct a two-sided permutation test to see if the mean delay times between the two carriers are statistically significant.
+    
+    Null Hypothesis:
+    $H_{0}: \mu_{AA}-\mu_{UA} = 0$
+    Verses: 
+    $H_{A}: \mu_{AA}-\mu_{UA} \neq 0$
+    
+    b. The flight delays occured in May and June of 2009.  Conduct a two-sided permutation test to see if the difference in mean delay times between the 2 months is statistically significant.
+    
+```{r}
+FD <- FlightDelays
+glimpse(FD)
+ 
+#find shape of data
+ggplot(data=FD, aes(x=Delay)) +
+    geom_histogram(color = "black", fill = "purple") +
+      labs(title = "BIG TITLE")+
+      facet_grid(Carrier~.)
+
+FD %>%
+    group_by(Carrier) %>%
+      summarize(MeanDelay = mean(Delay), IQRDelay = IQR(Delay), 
+                MedianDelay = median(Delay), SDDelay = sd(Delay),
+                N = n())
+
+delays <- FD$Delay
+#median(delays)
+#IQR(delays)
+sims <- 10^4 -1
+
+answer <- numeric(sims)
+
+for (i in 1:sims)
+{
+  #2906 is amount of AA delays and 4029 is the total number of delays
+  index <- sample(4029, 2906, replace = FALSE)
+  answer[i] <- mean(delays[index]) - mean(delays[-index])
+}
+
+obs <-tapply(FD$Delay, FD$Carrier, mean)
+obs
+obs_diff <- obs[1] - obs[2] #obs[1] is the first carriers mean delay (AA) and obs[2] is the second one (UA)
+obs_diff
+
+pval <- (sum(answer <= obs_diff)+1)/(sims+1)
+pval
+``` 
+
+> SOLUTION: 
+
+```{r}
+FD <- FlightDelays
+glimpse(FD)
+FD %>%
+    group_by(Month) %>%
+      summarize(m = n(), MeanDelay = mean(Delay))
+
+delays <- FD$Delay
+sims <- 10^4 -1
+
+answer <- numeric(sims)
+
+#mixes data up
+for (i in 1:sims)
+{
+  index <- sample(4029, 2030, replace = FALSE)
+  answer[i] <- mean(delays[index]) - mean(delays[-index])
+}
+
+#applies mean of both months
+obs <-tapply(FD$Delay, FD$Month, mean)
+obs
+#finds difference in means
+obs_diff <- obs[1] - obs[2]
+obs_diff
+
+#if the val in answer is less then the diff then add one and divide by number of simulation element
+#idk where the < comes from...
+pval <- (sum(answer < obs_diff)+1)/(sims+1)
+pval
+```
+
+> SOLUTION: 
+    
+2. In the Flight Delays Case Study in Section 1.1, the data contain flight delays for two airlines, American Airlines and United Airlines.
+
+    a. Compute the proportion of times that each carrier's flights was delayed more than 20 minutes.  Conduct a two-sided test to see if the difference in these proportions is statistically significant.
+    
+    b. Compute the variance in the flight delay lengths for each carrier.  Conduct a test to see if the variance for United Airlines is greater than that of American Airlines.
+    
+        the null hypo is (signma of UA squared)/(sigma of AA) = 1
+    
+```{r}
+# a. Your code here
+FD <- FlightDelays
+glimpse(FD)
+FD %>%
+    group_by(Carrier) %>%
+      summarize(m = n(), MeanDelay = mean(Delay > 20))
+
+delays <- FD$Delay
+sims <- 10^4 -1
+
+answer <- numeric(sims)
+
+#mixes data up
+for (i in 1:sims)
+{
+  index <- sample(4029, 2906, replace = FALSE)
+  answer[i] <- mean(delays[index] > 20) - mean(delays[-index] > 20)
+}
+
+#applies mean of both months
+obs <-tapply(FD$Delay > 20, FD$Carrier, mean)
+obs
+#finds difference in means
+obs_diff <- obs[1] - obs[2]
+obs_diff
+
+#if the val in answer is less then the diff then add one and divide by number of simulation element
+#idk where the < comes from...
+pval <- (sum(answer < obs_diff)+1)/(sims+1)
+pval
+```
+
+> SOLUTION: 
+
+```{r}
+#this is the one you must divide the shits instead of subtract
+# b. Your code here
+FD <- FlightDelays
+glimpse(FD)
+FD %>%
+    group_by(Carrier) %>%
+      summarize(m = n(), VarienceDelay = var(Delay))
+
+delays <- FD$Delay
+sims <- 10^4 -1
+
+answer <- numeric(sims)
+
+#mixes data up
+for (i in 1:sims)
+{
+  index <- sample(4029, 2906, replace = FALSE)
+  answer[i] <- var(delays[index]) / var(delays[-index])
+}
+
+#applies mean of both months
+obs <-tapply(FD$Delay, FD$Carrier, var)
+obs
+#finds difference in means
+obs_diff <- obs[1] / obs[2]
+obs_diff
+
+#if the val in answer is less then the diff then add one and divide by number of simulation element
+#idk where the < comes from...
+pval <- (sum(answer < obs_diff)+1)/(sims+1)
+pval
+```
+
+> SOLUTION:     
+    
+3. In the Flight Delays Case Study in Section 1.1, repeat Exercise 3 part (a) using three test statistics: (i) the mean of the United Airlines delay times, (ii) the sum of the United Airlines delay times, and (iii) the difference in the means, and compare the P-values. Make sure all three test statistics are computed within the same `for` loop.
+
+```{r}
+# Your code here
+```
+
+> SOLUTION: 
+
+4. In the Flight Delays Case Study in Section 1.1,
+    
+    a. Find the 25% trimmed mean of the delay times for United Airlines and American Airlines.
+    
+    b. Conduct a two-sided test to see if the difference in trimmed means is statistically significant.
+    
+```{r}
+# a. Your code here
+FD <- FlightDelays
+glimpse(FD)
+
+FD %>%
+    group_by(Carrier) %>%
+      summarize(MeanDelay = mean(Delay, trim = .25), IQRDelay = IQR(Delay), 
+                MedianDelay = median(Delay), SDDelay = sd(Delay),
+                N = n())
+
+delays <- FD$Delay
+sims <- 10^4 -1
+
+answer <- numeric(sims)
+
+for (i in 1:sims)
+{
+  #2906 is amount of AA delays and 4029 is the total number of delays
+  index <- sample(4029, 2906, replace = FALSE)
+  answer[i] <- mean(delays[index], trim = .25) - mean(delays[-index], trim = .25)
+}
+
+obs <-tapply(FD$Delay, FD$Carrier, mean, trim = .25)
+obs
+obs_diff <- obs[1] - obs[2] #obs[1] is the first carriers mean delay (AA) and obs[2] is the second one (UA)
+obs_diff
+
+pval <- (sum(answer <= obs_diff)+1)/(sims+1)
+pval
+```
+
+> SOLUTION: 
+
+```{r}
+# b. Your code here
+```
+
+> SOLUTION:    
+    
+5. In the Flight Delays Case Study in Section 1.1,
+
+    a. Compute the proportion of times the flights in May and in June were delayed more than 20 min, and conduct a two-sided test of whether the difference between months is statistically significant.
+    
+    b. Compute the variance of the flight delay times in May and June and then conduct a two-sided test of whether the ratio of variances is statistically significantly different from 1.
+    
+```{r}
+# a. Your code here
+FD <- FlightDelays
+glimpse(FD)
+FD %>%
+    group_by(Month) %>%
+      summarize(m = n(), MeanDelay = mean(Delay > 20))
+
+delays <- FD$Delay
+sims <- 10^4 -1
+
+answer <- numeric(sims)
+
+#mixes data up
+for (i in 1:sims)
+{
+  index <- sample(4029, 2030, replace = FALSE)
+  answer[i] <- mean(delays[index] > 20) - mean(delays[-index] > 20)
+}
+
+#applies mean of both months
+obs <-tapply(FD$Delay > 20, FD$Month, mean)
+obs
+#finds difference in means
+obs_diff <- obs[1] - obs[2]
+obs_diff
+
+#if the val in answer is less then the diff then add one and divide by number of simulation element
+#idk where the < comes from...
+pval <- (sum(answer < obs_diff)+1)/(sims+1)
+pval
+```
+
+> SOLUTION:
+
+```{r}
+# b. Your code here
+```
+
+> SOLUTION:
+
+6. Research at the University of Nebraska conducted a study to investigate sex differences in dieting trends among a group of Midwestern college students (Davy et al. (2006)). Students were recruited from an introductory nutrition course during one term. Below are data from one question asked to 286 participants.
+
+    a. Write down the appropriate hypothesis to test to see if there is a relationship between gender and diet and then carry out the test.
+   
+    b. Can the resluts be generalized to a population? Explain.
+    
+    
+```{r, echo = FALSE}
+DT <- matrix(c(35, 146, 8, 97),nrow=2, byrow=TRUE)
+dimnames(DT) <- list(Gender =c("Women", "Men"), LowFatDiet = c("Yes", "No"))
+DT
+```
+
+```{r}
+# Your code here
+```
+
+> SOLUTION:
+
+7. A national polling company conducted a survey in 2001 asking a randomly selected group of Americans of 18 years of age or older whether they supported limited use of marijuana for medicinal purposes. Here is a summary of the data:
+
+    Write down the appropriate hypothesis to test whether there is a relationship between age and support for medicinal marijuana and carry out the test.
+  
+```{r, echo = FALSE}
+MA <- matrix(c(172, 52, 313, 103, 258, 119), nrow = 3, byrow = TRUE)
+dimnames(MA) <- list(Age = c("18-29 years old", "30-49 years old", "50 years or older"), Support = c("For", "Against"))
+MAT <- as.table(MA)
+MADF <- as.data.frame(MAT)
+DF <- as.tbl(vcdExtra::expand.dft(MADF))
+T1 <- xtabs(~Age + Support, data = DF)
+T1
+```  
+
+
+
+```{r}
+# Your code here
+```
+
+> SOLUTION:
+
+
+8. Two students went to a local supermarket and collected data on cereals; they classified by their target consumer (children versus adults) and the placement of the cereal on the shelf (bottom, middle, and top). The data are given in `Cereals`.
+
+    a. Create a table to summarize the relationship between age of target consumer and shelf location.
+    
+    b. Conduct a chi-square test using R's `chisq.test` command.
+    
+    c. `R` returns a warning message. Compute the expected counts for each cell to see why.
+    
+    d. Conduct a permutation test for independence.
+    
+```{r, message = TRUE}
+str(Cereals)
+# Your code here
+```
+
+> SOLUTION:
+
+9. From GSS 2002 Case Study in Section 1.6,
+    
+    a. Create a table to summarize the relationship between gender and the person's choice for president in the 2000 election.
+    
+    b. Test to see if a person's choice for president in the 2000 election is independent of gender (use chisq.test in `R`).
+    
+    c. Repeat the test but use the permutation test for independence. Does your conclusion change? (Be sure to remove observations with missing values)
+    
+```{r}
+str(GSS2002)
+# Your code here
+```
+ 
+> SOLUTION:    
+
+10. From GSS 2002 Case Study in Section 1.6,
+
+    a. Create a table to summarize the relationship bewteen gender and the person's general level of happiness (`Happy`).
+    
+    b. Conduct a permutation test to see if gender and level of happiness are independent (Be sure to remove the observations with missing values).
+
+```{r}
+# Your code here
+```
+
+> SOLUTION: 
+    
+11. From GSS 2002 Case Study in Section 1.6,
+
+    a. Create a table to summarize the relationship between support for gun laws (`GunLaw`) and views on government spending on the military (`SpendMilitary`).
+    
+    b. Conduct a permutation test to see if support for gun laws and views on government spending on the military are independent (Be sure to remove observations with missing values).
+
+    
+```{r}
+# Your code here
+```
+    
+> SOLUTION:    
